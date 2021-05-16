@@ -7,6 +7,45 @@ Year    :   2021
 
 """
 import nltk
+import os
+
+def read_bbc_dataset(path):
+    '''
+    It reads any of the BBC datasets (BBC or BBCSport). The raw text files can be 
+    downloaded from http://mlg.ucd.ie/datasets/bbc.html. The zipped files can be 
+    unzipped to get the folders that contain the entire bbc or bbc sports dataset.
+    These folders are then parsed to get the texts and corresponding classes.
+    
+    Parameters
+    ----------
+    location : str
+        Path to the bbc or bbcsport folder containing raw documents.
+
+    Returns
+    -------
+    texts : list
+        List of textual content of all documents in the dataset.
+    classes : list
+        List of class labels corresponding to each textual document.
+
+    '''
+    
+    texts, classes = [], []
+    
+    for class_label in os.listdir(path):
+        class_dir_path = os.path.join(path, class_label)
+        
+        # If its a directory, then it is considered to be the class label
+        # and all the files in the directory are read and associated with 
+        # this class label
+        if os.path.isdir(class_dir_path):            
+            for file_name in os.listdir(class_dir_path):
+                file_path = os.path.join(class_dir_path, file_name)
+                with open(file_path, "r", encoding="utf8", errors="surrogateescape") as f:
+                    texts.append(str(f.read()))
+                    classes.append(class_label)  
+                    
+    return texts, classes
 
 def tokenize(
     text, 
