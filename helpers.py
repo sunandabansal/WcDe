@@ -67,10 +67,10 @@ def flatten(nested_iterable,unique=False):
 
     Returns
     -------
-    unique_items list
+    unique_items : list
         Flattened list without multiple occurrences of the same item while retaining the order 
         of DFS traversal.
-    flattened_list list
+    flattened_list : list
         Flattened list of items traversed depth-first.
 
     '''
