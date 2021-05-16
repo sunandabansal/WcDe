@@ -17,7 +17,7 @@ if args.tokenizer == "regex":
 
 """### Generate Document Vectors"""
 #PENDING - edit load_tokenized_dataset or write a new function
-full_dataset, args = WcDe.load_tokenized_dataset(args, tokenizer=tokenizer, removeStopwords=args.removeStopwords)
+full_dataset, args = load_tokenized_dataset(args, tokenizer=tokenizer, removeStopwords=args.removeStopwords)
 
 #PENDING - remove experiment names
 if args.experiment_name =="wcde_w2v":
