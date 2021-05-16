@@ -73,7 +73,7 @@ def tokenize(
         The list of terms to exclude from tokens. This could be stopwords or more. 
         If None, or empty list is provided, no tokens will be excluded from the results.
         The default is None.
-    tokenizer_kwargs : dict
+    tokenizer_kwargs : dict, optional
         Any additional keyword arguments passed to this function are passed to the tokenizer, if any.
 
     Returns
@@ -90,3 +90,51 @@ def tokenize(
         tokens = [token for token in tokens if not token in exclude]
 
     return tokens
+
+# Miscellaneous Utilities
+
+def flatten(nested_iterable,unique=False):
+    '''
+    Flattens nested lists in a depth first fashion.
+
+    Parameters
+    ----------
+    nested_iterable : list or tuple or numpy.array
+        The iterable object that is nested and needs to be flattened
+    unique : bool, optional
+        Removes multiple occurrences, retains the DFS traversal order. The default is False.
+
+    Returns
+    -------
+    unique_items list
+        Flattened list without multiple occurrences of the same item while retaining the order 
+        of DFS traversal.
+    flattened_list list
+        Flattened list of items traversed depth-first.
+
+    '''
+    flattened_list = []
+    
+    for item in nested_iterable:
+        # If this item of list is an iterable, but a string, consider it a leaf node
+        if type(item) is str:
+            flattened_list.append(item)
+            continue
+        try:   
+            # If this item of list is an iterable but not a string, consider further nesting
+            if iter(item):
+                flattened_list.extend(flatten(item))
+        except:
+            # If not iterable, it is a leaf node
+            flattened_list.append(item)
+            
+    if unique:
+        # Note : using list(set(list)) can mess up the order        
+        unique_items = []
+        
+        for item in flattened_list:
+            if item not in unique_items:
+                unique_items.append(item)
+        return unique_items    
+    else:        
+        return flattened_list
