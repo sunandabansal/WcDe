@@ -27,7 +27,6 @@ import matplotlib.pyplot as plt
 import multiprocessing as mp
 from importlib import reload
 
-from sklearn.cluster import KMeans
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import Normalizer
 from sklearn import metrics
@@ -47,165 +46,7 @@ from importlib import reload
 
 ### Variables
 
-'''
-Not using Abbreviated names of metrics messes up when we rotate the xtick labels for the plots
-that contain the metrics on the x-axis
-'''
-abbrev_metrics = ['Norm. MIS', 'Homo.', 'Compl.', 'V Meas.', 'Fowlkes',
-                  'Adj. Rand', 'Purity', 'Accuracy', 'F1 Score', 'Precision', 'Recall']
-
-abbrev_metrics_acronym = ['NMI', 'H', 'C', 'FMI', 'ARI', 'Purity', 'Acc.', 'F1', 'P', 'R']
-
-score_cols = ['Normalized Mutual Information Score', 'Homogeneity Score', 'Completeness Score', 
-              'Fowlkes Mallows Score', 'Adjusted Rand Score', 'Purity',
-              'Accuracy Score', 'F1 Score']
-
-
-extra_metrics = [
-                     'Calinski-Harabasz Index',
-                     'Davies-Bouldin Index',
-                     'Silhouette Score'
-                ]
-
-metrics_order = score_cols
-
-word_vectors_order = [
-            "glove100", 
-            "glove300", 
-            "word2vec_pretrained", 
-            "word2vec_20epochs", 
-            "word2vec_50epochs", 
-            "word2vec_100epochs", 
-            "word2vec_150epochs", 
-          ]
-
-word_vectors_name_map = {
-    'glove100': "GloVe 100d", 
-    'glove300': "GloVe 300d", 
-    'word2vec_pretrained': "Word2vec Pre", 
-    'wcde_w2v':"Word2vec",
-    'word2vec_20epochs':"Word2vec 20 Epochs",
-    'word2vec_50epochs':"Word2vec 50 Epochs",
-    'word2vec_100epochs':"Word2vec 100 Epochs",
-    'word2vec_150epochs':"Word2vec 150 Epochs"
-}
-
-word_vectors_order = [word_vectors_name_map[wv] for wv in word_vectors_order]
-
-metric_name_map = {}
-for full, acro in zip(score_cols, abbrev_metrics_acronym):
-    metric_name_map[full] = acro
-
-wcde_name = "WcDe"
-method_name_map = {
-                    'weavg':"WE_AVG", 
-                    'doc2vec':"Doc2Vec", 
-                    'wcde':wcde_name, 
-                    'vsm':"VSM", 
-                    'lda':"LDA", 
-                    'lsi':"LSA", 
-                    'SIF':"WE_SIF", 
-                    'wetfidf':"WE_TFIDF"
-                  }
-methods_order = ["WE_AVG", "WE_SIF", "WE_TFIDF", "LDA", "VSM", "LSA", "Doc2Vec", wcde_name]
-
-dataset_name_map = {
-                        "bbc":"BBC",
-                        "bbcsport":"BBC Sport"                        
-                    }
-
-
 """### Functions"""
-
-def Sentenced_Tokenizer(text, removeStopwords=False, stem=False):
-    sentences = nltk.tokenize.sent_tokenize(text.lower())
-
-    processed_sentences = []
-    for sentence in sentences:        
-        processed_sentences.append(NLTK_Text_Tokenizer(sentence, removeStopwords=removeStopwords, stem=stem))
-
-    return processed_sentences
-
-# Flatten list
-def flatten(l,unique=False):
-    flattened_list = []
-    for item in l:
-        if type(item) is str:
-            flattened_list.append(item)
-            continue
-        try:   
-            if iter(item):
-                flattened_list.extend(flatten(item))
-        except:
-            flattened_list.append(item)
-    if unique:
-        return list(set(flattened_list))     
-    else:        
-        return flattened_list
-
-def regex_tokenizer(doc, removeStopwords=True):
-    """
-    Input  : document list
-    Purpose: preprocess text (tokenize, removing stopwords)
-    Output : preprocessed text
-    """
-    # clean and tokenize document string
-    global tokenizer, en_stop
-
-    raw = doc.lower()
-    tokens = tokenizer.tokenize(raw)
-    if removeStopwords:
-        tokens = [token for token in tokens if not token in en_stop]
-
-    return tokens
-
-
-# def load_tokenized_dataset(args, tokenizer, **tokenizer_kwargs):
-#     '''
-#     Parameters
-#     ----------
-#     args : TYPE
-#         DESCRIPTION.
-
-#     Returns
-#     -------
-#     df : TYPE
-#         DESCRIPTION.
-
-#     '''
-#     fname = os.path.join(data_loc,f"{args.dataset}_{tokenizer.__name__}.p")
-
-#     args["Function used to read dataset"] = "load_tokenized_dataset"
-#     args["Dataset pickle"] = fname
-#     args["Tokenizer used"] = tokenizer.__name__
-#     args["Tokenizer args"] = tokenizer_kwargs
-
-#     if file_exists(fname):
-#         print("Found pickle of tokenized dataset. Reading pickle.")
-#         args["Dataset pickle found"] = "Yes"
-#     else:
-#         print(f"Pickle not found. Reading {args.dataset} dataset, tokenizing and saving pickle.")
-#         args["Dataset pickle found"] = "No"
-#         if args.dataset == "bbc":
-#             location = get_data_path("datasets/bbc")
-#         elif args.dataset == "bbcsport":
-#             location = get_data_path("datasets/bbcsport")
-#         df = pd.DataFrame(columns=["name","path","text","class"])
-#         for classname in os.listdir(location):
-#             class_dir_path = os.path.join(location, classname)
-#             if os.path.isdir(class_dir_path):
-#                 for filename in os.listdir(class_dir_path):
-#                     file_path = os.path.join(class_dir_path, filename)
-#                     with open(file_path, "r", encoding="utf8", errors="surrogateescape") as f:
-#                         contents = str(f.read())
-#                         df.loc[len(df)+1] = [filename, file_path, contents, classname]   
-
-#         df["tokenized_text"] = df.text.apply(tokenizer, **tokenizer_kwargs)
-
-#         df.to_pickle(fname)
-
-#     return pd.read_pickle(fname), args
-
 
 
 def cluster_members(cluster_num):
@@ -218,8 +59,6 @@ def cluster_members(cluster_num):
             words.append(word)
     return words
 
-from tabulate import tabulate
-
 def print_clusters(cluster_nums, print_limit=20):
     if type(cluster_nums) == int:
         cluster_nums = [cluster_nums]
@@ -230,192 +69,108 @@ def print_clusters(cluster_nums, print_limit=20):
         print(", ".join(cluster_members(cn)[:print_limit]))
         print()
 
-def to_pickle(what,where):
-    pickle.dump(what, open(where,"wb"))
-    
-def read_pickle(where):
-    return pickle.load(open(where,"rb"))
+import warnings
+from sklearn.cluster import KMeans
+from sklearn.cluster import AgglomerativeClustering as AHC    
 
-
-from sklearn.metrics.pairwise import paired_distances as sklearn_paired_distances
-from sklearn.metrics.pairwise import euclidean_distances
-
-
-def load_embeddings(vocab, word_vectors="word2vec_pretrained", path=None):
-    
+def cluster_word_vectors(
+    word_vectors, 
+    clustering_algorithm, 
+    n_clusters=1500, 
+    distance_threshold=None,
+    linkage="ward",
+    **clustering_kwargs
+    ):
     '''
+    Clusters word vectors
+
     Parameters
     ----------
-    word_vectors : String. Default = "word2vec_pretrained"
-        Method to load pre-trained word embeddings from a specified location. ["glove100", "glove300", "word2vec_pretrained"].
-    file_path : Stirng
-        Directory address of the pre-trained word embeddings to be loaded (except for the Word2Vec pre-trained model)
-    vocab : List of strings
-       .
+    word_vectors : 2D numpy.array or pandas.Series
+        A 2D array of shape (n_words, word_vector_size) or a Pandas Series with 
+        words as the index and vector (numpy array) as the corresponding value.        
+    clustering_algorithm : str
+        Specifies which clustering algorithm to use. Accepts "kmeans" for K-Means
+        or "ahc" for Agglomerative Hierarchical Clustering (AHC). 
+    n_clusters : int, optional
+        The number of clusters to cluster the word vectors into. The default is 1500.
+    distance_threshold : float, optional
+        For Agglomerative Hierarchical Clustering (AHC), the clusters with linkage 
+        distance smaller than this value will be merged. If a value is declared 
+        for this parameter then `n_clusters` must be set to None.        
+        The default is None.
+    linkage : str, optional
+        The linkage critera for Agglomerative Hierarchical Clustering (AHC).
+        The default is None.
+    **clustering_kwargs : TYPE
+        Additional keyword arguments are passed to respective clustering functions
+        based on the value `clustering_algorithm`. For refer to the documentation
+        of sklearn library for KMeans and AgglomerativeClustering clustering
+        algorithms.
 
     Returns
     -------
-    embeddings : TYPE
-        DESCRIPTION.
+    labels : list
+        A list of cluster labels for each of the word vectors.
 
     '''
-
-    if word_vectors == "glove100":
-
-        # Load Embedding
-        with open(os.path.expanduser(file_path)) as file:
-            embeddings =  {
-                                line.split()[0]:line.split()[1:] 
-                                for line in file 
-                                # add the selected words that are in the vocab
-                                if line.split()[0] in vocab
-                            }      
-
-        embeddings = pd.DataFrame.from_dict(embeddings, orient="index").astype(float)
-
-        embeddings = embeddings.apply(np.asarray, axis=1).rename("embedding")
-
-    elif word_vectors == "glove300":
-
-        # Load Embedding
-        with open(os.path.expanduser(file_path)) as file:
-            embeddings =  {
-                                " ".join(line.split()[:-300]):line.split()[-300:] 
-                                for line in file 
-                                # add the selected words that are in the vocab
-                                if line.split()[0] in vocab
-                            }      
-
-        embeddings = pd.DataFrame.from_dict(embeddings, orient="index").astype(float)
-
-        embeddings = embeddings.apply(np.asarray, axis=1).rename("embedding")
-
-    elif word_vectors == "word2vec_pretrained":
-        import gensim.downloader as api
-
-        # Load Pre-trained vectors
-        wv = api.load('word2vec-google-news-300')   
-
-        # Keep words that are present in pre-trained embeddings
-        common_vocab = [word for word in vocab if word in wv]
-        embeddings = wv[common_vocab]
-
-        embeddings = pd.DataFrame(embeddings, index=common_vocab).astype(float)
-
-        embeddings = embeddings.apply(np.asarray, axis=1).rename("embedding")  
-
-    return embeddings.reindex(vocab).dropna()
-
-
-def get_word2vec_model(data, word2vec_size, word2vec_window, word2vec_min_count, word2vec_epochs, word2vec_skip_gram):
     
-    '''
-    Parameters
-    ----------
-    data : 
+    if type(word_vectors) == pd.Series:
+        word_vectors = list(word_vectors.tolist())
+       
+    if clustering_algorithm == "kmeans":
+        clustering_model = KMeans(n_clusters=n_clusters, **clustering_kwargs)
+
+    elif clustering_algorithm == "ahc" :
+        
+        if n_clusters is not None: compute_full_tree=False
+        
+        clustering_model = AHC(
+                                    n_clusters          = n_clusters,
+                                    distance_threshold  = distance_threshold,
+                                    linkage             = linkage,
+                                    compute_full_tree   = True if n_clusters is None else False,
+                                    **clustering_kwargs
+                                )          
+        
+    clustering_model = clustering_model.fit(word_vectors)
+
+    labels = clustering_model.labels_
     
-    Returns
-    -------
-    embeddings : Word2Vec Model
-        DESCRIPTION.
+    if len(set(labels)) == 1:            
+        warnings.warn("Based on the parameters provided, only 1 word cluster was found.")
 
-    '''
+    return labels
 
-    tokenized_sentences = [sent for text in data.text.apply(Sentenced_Tokenizer) for sent in text]  
+def get_document_vectors(tokenized_texts, **kwargs):
+    return [
+                get_document_vector(tokenized_text, **kwargs) 
+                for tokenized_texts in tokenized_texts
+           ]
+
+def get_document_vector(
+    data, 
+    word_vectors, 
+    cluster_labels, 
+    weight_function="cfidf", 
+    normalize=True
+    ):
     
-    print("Training Word2Vec")
-    model = Gensim_Word2Vec(
-                                sentences=tokenized_sentences, 
-                                size=int(word2vec_size), 
-                                window=int(word2vec_window), 
-                                min_count=int(word2vec_min_count), 
-                                workers=mp.cpu_count(),
-                                iter=int(word2vec_epochs),
-                                sg=int(word2vec_skip_gram)
-                            )
-    return model
+    wec_df = word_vectors.to_frame()
 
+    # Name of index
+    wec_df.index.name = "word"
 
-def cluster(embeddings, wcde_clustering_method = , n_clusters = , linkage = , distance_threshold = ):
+    # Add Labels
+    wec_df["label"] = labels
+
+    # Get cluster center for each word
+    cluster_centers_df = pd.DataFrame(cluster_centers).apply(np.asarray, axis=1).to_frame(name="cluster_center")
+
+    wec_df = wec_df.join(cluster_centers_df, on="label")  
     
-    '''
-    Parameters
-    ----------
-    data : 
-    
-    Returns
-    -------
-    embeddings : Word2Vec Model
-        DESCRIPTION.
-
-    '''
-
-    from sklearn.cluster import AgglomerativeClustering as AHC    
-
-    print("Cluster labels and cluster centers not found. Clustering now.")
-    if wcde_clustering_method == "kmeans":
-        # KMeans
-        clustering_model = KMeans(
-                                        n_clusters=int(n_clusters),
-                                        random_state=0,
-                                        n_jobs=-1
-                                   ).fit(list(embeddings.tolist()))
-
-        labels = clustering_model.labels_
-        cluster_centers = clustering_model.cluster_centers_
-
-    elif wcde_clustering_method == "ahc" :
-        # Agglomerative 
-        if n_clusters and not pd.isnull(n_clusters) :
-            print(f"Using AHC with specific number of clusters and {linkage} linkage")
-            clustering_model = AHC(n_clusters=int(n_clusters), linkage=linkage).fit(embeddings.to_list())
-
-        elif distance_threshold and not pd.isnull(distance_threshold) :
-            print(f"Using AHC with Distance Threshold {distance_threshold} and {linkage} linkage")
-            clustering_model = AHC(
-                                        n_clusters=n_clusters,
-                                        distance_threshold=float(distance_threshold),
-                                        compute_full_tree=True,
-                                        linkage=linkage
-                                    ).fit(embeddings.to_list())            
-
-            ahc_dt_clusters = clustering_model.n_clusters_
-
-            if ahc_dt_clusters < 10:
-                raise Exception("Not enough word clusters.")
-        else:
-            raise Exception(f"Ambiguous values : n_clusters={n_clusters}, distance_threshold={distance_threshold}. Exactly one of them has to be null.")
-
-        labels = clustering_model.labels_ # One label for each word embedding
-
-        # Collect clusters
-        clusters = {label:[] for label in labels}
-        for label, embedding in zip(labels,embeddings.to_list()):
-            clusters[label].append(embedding)  
-
-        cluster_centers = []
-        for label in range(len(set(labels))):
-            cluster_centers.append(np.mean(clusters[label], axis=0))
-
-    return labels, cluster_centers, ahc_dt_clusters
-
-def generate_embeddings(data, wec_df, cluster_function = , wcde_vector_normalize = True/False):
-    
-    '''
-    Parameters
-    ----------
-    data : 
-    
-    Returns
-    -------
-    embeddings : Word2Vec Model
-        DESCRIPTION.
-
-    '''
-
-    print("Generating Document Embeddings")
     N = len(data)
-    if cluster_function == "qimin" or cluster_function == "fraj" or cluster_function == "tfidf_sum":
+    if cluster_function == "cfidf" or cluster_function == "tfidf_sum":
         # Calculate cluster document frequency
         '''
         cdf(i,j) = cluster document frquency of cluster i in document j
@@ -440,7 +195,7 @@ def generate_embeddings(data, wec_df, cluster_function = , wcde_vector_normalize
     
         inverted_index = inverted_index.rename(columns={"index":"word"})
 
-        if cluster_function == "qimin":
+        if cluster_function == "cfidf":
             # Get number of documents for each cluster - count unique doc_ids
             cdf = inverted_index.groupby(["label"])["doc_id"].nunique().rename("df")
     
@@ -464,7 +219,7 @@ def generate_embeddings(data, wec_df, cluster_function = , wcde_vector_normalize
             # Filter Word Cluster index (wec_df) to contain only words from the Text, reset to not lose words (index)
             wec_text_df = wec_df.join(tf).dropna(subset=["term_freq"]).reset_index()
             
-            if cluster_function == "qimin":            
+            if cluster_function == "cfidf":            
                 '''
                 # Get cluster frequency - 
                 cf(i,j) = count of every occurrence of any terms of cluster i that are present in document j
