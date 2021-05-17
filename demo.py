@@ -54,70 +54,71 @@ def read_bbc_dataset(path):
                     
     return texts, classes
 
+def read_glove_embeddings(path, vocab, vector_size):
+    '''
+    Reads GloVe pre-trained word embeddings into a Pandas Series
+
+    Parameters
+    ----------
+    path : str
+        Path to GloVe pre-trained embedding file.
+    vocab : list or None
+        List of terms to get word vectors for.
+    vector_size : int
+        Size of a word vector in the word embedding.
+
+    Returns
+    -------
+    embeddings : pandas.Series
+        Pandas Series with words as the index and vector (numpy array) as the corresponding value.
+
+    '''
+    embeddings = {}
+    
+    with open(os.path.expanduser(path)) as file:
+        for line in file:
+            word    = " ".join(line.split()[:-vector_size]) 
+            vector  = line.split()[-vector_size:]
+            
+            if vocab is not None and word in vocab:
+                embeddings[word] = vector    
+
+    embeddings = pd.DataFrame.from_dict(embeddings, orient="index").astype(float)
+
+    embeddings = embeddings.apply(np.asarray, axis=1).rename("embedding")
+    
+    embeddings = embeddings.reindex(vocab).dropna()
+    
+    embeddings.index.name = "word"
+    
+    return embeddings
+        
 
 if __name__ == "__main__":
     
     # Read Dataset
-    texts, classes = helpers.read_bbc_dataset("/path/to/bbc/") 
+    texts, classes = read_bbc_dataset(path="/path/to/bbc/") 
     
     # Tokenized the texts
     tokenized_texts = [helpers.tokenize(text) for text in texts]
     
     # Get the vocabulary of dataset
-    vocab = helpers.flatten(full_dataset["tokenized_text"], unique=True)
+    vocab = helpers.flatten(tokenized_texts, unique=True)
     
-    #PENDING - remove experiment names
-    if args.experiment_name =="wcde_w2v":
-        #PENDING
-        model = WcDe.get_word2vec_model(full_dataset, [word2vec_size], [word2vec_window], [word2vec_min_count], [word2vec_epochs], [word2vec_skip_gram])
+    # Get word vectors 
+    word_vectors = read_glove_embeddings(path="/path/to/glove.6B.100d.txt", vocab=vocab, vector_size=100)
+    
 
-        # Get vocabulary of training set to filter the giant embedding object
-        full_vocab = WcDe.flatten(full_dataset["tokenized_text"], unique=True)
-
-        vocab = [word for word in full_vocab if word in model.wv.vocab]
-
-        # Get word embeddings
-        embeddings = model.wv[vocab]
-
-        # Make Pandas Series with index= words, values = embeddings 
-        embeddings = pd.DataFrame(embeddings, index=vocab).astype(float)
-
-        embeddings = embeddings.apply(np.asarray, axis=1).rename("embedding")
-
-        embeddings.index.name = "word"
-
-        print(f"{len(full_vocab)} unique words found in the data set")
-        print(f"{len(vocab)} words from the data set taken as embeddings")
-        
-    else:
-        # Get vocabulary of training set to filter the giant embedding object
-        vocab = WcDe.flatten(full_dataset["tokenized_text"], unique=True)
-
-        embeddings = WcDe.load_embeddings(vocab = vocab, word_vectors= , path= )
-
-        print(f"{len(vocab)} unique words found in the data set")
-
-        print(f"{len(embeddings)} words from the data set found in the embeddings")
-
-
-    labels, cluster_centers, args_ahc_dt_clusters = WcDe.cluster(embeddings = embeddings, wcde_clustering_method = , n_clusters = , linkage = , distance_threshold = )
-
-    len(cluster_centers)
-
-    # Cluster Distribution
-    pd.Series(labels).value_counts().sort_values(ascending=False).reset_index(drop=True).plot(figsize=(15,5))
-
-    wec_df = embeddings.to_frame()
-
-    # Name of index
-    wec_df.index.name = "word"
-
-    # Add Labels
-    wec_df["label"] = labels
-
-    # Get cluster center for each word
-    cluster_centers_df = pd.DataFrame(cluster_centers).apply(np.asarray, axis=1).to_frame(name="cluster_center")
-
-    wec_df = wec_df.join(cluster_centers_df, on="label")  
-
-    list_of_text_embeddings = WcDe.generate_embeddings(data = full_dataset, wec_df = wec_df, cluster_function = , wcde_vector_normalize = True/False)
+    cluster_labels = WcDe.cluster_word_vectors(
+                                                  word_vectors=word_vectors, 
+                                                  clustering_algorithm="kmeans",
+                                                  n_clusters=1500 
+                                              )
+    
+    wcde_doc_vectors = WcDe.get_document_vectors(    
+                                                    tokenized_texts,
+                                                    word_vectors=word_vectors,
+                                                    cluster_labels=cluster_labels,
+                                                    weight_function="cfidf",
+                                                    normalize=True
+                                                )
