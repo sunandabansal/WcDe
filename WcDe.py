@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 
 '''
+
 Author  :   Sunanda Bansal (sunanda0343@gmail.com)
 Year    :   2021
 
 '''
 
-# Prep
-
-# Imports
+# Importing Libraries
 import warnings
 import numpy as np
 import pandas as pd
@@ -84,10 +83,7 @@ def cluster_word_vectors(
     if clustering_algorithm == "kmeans":
         clustering_model = KMeans(n_clusters=n_clusters, **clustering_kwargs)
 
-    elif clustering_algorithm == "ahc" :
-        
-        if n_clusters is not None: compute_full_tree=False
-        
+    elif clustering_algorithm == "ahc" :        
         clustering_model = AHC(
                                     n_clusters          = n_clusters,
                                     distance_threshold  = distance_threshold,
@@ -113,24 +109,25 @@ def get_document_vectors(
     normalize=True
     ):
     
-    wec_df = word_vectors.to_frame()
+    # Prepare dataframe with word vector and cluster labels for each word (index)
+    wec_df = word_vectors.to_frame()    
+    wec_df["label"] = cluster_labels    # Add Cluster labels to the dataframe    
+    wec_df.index.name = "word"          # Name the index
 
-    # Name of index
-    wec_df.index.name = "word"
-
-    # Add Labels
-    wec_df["label"] = cluster_labels
+    # Total number of texts (used in cfidf weight calculations)
+    N = len(tokenized_texts)           
     
-    print(wec_df)
-    
-    N = len(tokenized_texts)
     if weight_function == "cfidf" or weight_function == "tfidf_sum":
         # Calculate cluster document frequency
         '''
-        cdf(i,j) = cluster document frquency of cluster i in document j
-                 = number of times any term from cluster i appeared in document j
-        Required for Qimin's cluster weight computation
+            Required for CF-iDF cluster weight computation
+            
+            cf(i,j)  = count of every occurrence of any terms of cluster i that are present in document j
+            cdf(i,j) = cluster document frquency of cluster i in document j
+                     = number of times any term from cluster i appeared in document j
+        
         '''
+        # Prepare an index of term occurrence in documents
         # Inverted Index - word, document, term frequency, cluster label
         inverted_index = pd.DataFrame()
         for idx, tokenized_text in enumerate(tokenized_texts):
@@ -139,7 +136,8 @@ def get_document_vectors(
                 # Get terms and frequencies from tokenized text
                 tf = pd.Series(tokenized_text, name="term_freq").value_counts()
     
-                # Filter Word Cluster index (wec_df) to contain only words from the Text, reset to not lose words (index)
+                # Filter Word Cluster index (wec_df) to contain only words from the Text, 
+                # reset to not lose words (index)
                 wec_text_df = wec_df[["label"]].join(tf).dropna(subset=["term_freq"]).reset_index()
     
                 wec_text_df["doc_id"] = idx

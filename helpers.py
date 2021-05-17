@@ -6,6 +6,8 @@ Author  :   Sunanda Bansal (sunanda0343@gmail.com)
 Year    :   2021
 
 """
+
+# Importing Libraries
 import nltk
 
 def tokenize(
@@ -53,7 +55,6 @@ def tokenize(
     return tokens
 
 # Miscellaneous Utilities
-
 def flatten(nested_iterable,unique=False):
     '''
     Flattens nested lists in a depth first fashion.
