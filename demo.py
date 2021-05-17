@@ -6,71 +6,132 @@ Author  :   Sunanda Bansal (sunanda0343@gmail.com)
 Year    :   2021
 
 '''
+
 # Importing Libraries
+import os
 import numpy as np
 import pandas as pd
 
+import helpers
 import WcDe
 
-if args.tokenizer == "regex":
-    tokenizer = regex_tokenizer
+# For clustering documents - Task specific imports
+import sklearn
 
-"""### Generate Document Vectors"""
-#PENDING - edit load_tokenized_dataset or write a new function
-full_dataset, args = load_tokenized_dataset(args, tokenizer=tokenizer, removeStopwords=args.removeStopwords)
 
-#PENDING - remove experiment names
-if args.experiment_name =="wcde_w2v":
-    #PENDING
-    model = WcDe.get_word2vec_model(full_dataset, [word2vec_size], [word2vec_window], [word2vec_min_count], [word2vec_epochs], [word2vec_skip_gram])
-
-    # Get vocabulary of training set to filter the giant embedding object
-    full_vocab = WcDe.flatten(full_dataset["tokenized_text"], unique=True)
-
-    vocab = [word for word in full_vocab if word in model.wv.vocab]
-
-    # Get word embeddings
-    embeddings = model.wv[vocab]
-
-    # Make Pandas Series with index= words, values = embeddings 
-    embeddings = pd.DataFrame(embeddings, index=vocab).astype(float)
-
-    embeddings = embeddings.apply(np.asarray, axis=1).rename("embedding")
-
-    embeddings.index.name = "word"
-
-    print(f"{len(full_vocab)} unique words found in the data set")
-    print(f"{len(vocab)} words from the data set taken as embeddings")
+def read_bbc_dataset(path):
+    '''
+    It reads any of the BBC datasets (BBC or BBCSport). The raw text files can be 
+    downloaded from http://mlg.ucd.ie/datasets/bbc.html. The zipped files can be 
+    unzipped to get the folders that contain the entire bbc or bbc sports dataset.
+    These folders are then parsed to get the texts and corresponding classes.
     
-else:
-    # Get vocabulary of training set to filter the giant embedding object
-    vocab = WcDe.flatten(full_dataset["tokenized_text"], unique=True)
+    Parameters
+    ----------
+    location : str
+        Path to the bbc or bbcsport folder containing raw documents.
 
-    embeddings = WcDe.load_embeddings(vocab = vocab, word_vectors= , path= )
+    Returns
+    -------
+    texts : list
+        List of textual content of all documents in the dataset.
+    classes : list
+        List of class labels corresponding to each textual document.
 
-    print(f"{len(vocab)} unique words found in the data set")
+    '''
+    
+    texts, classes = [], []
+    
+    for class_label in os.listdir(path):
+        class_dir_path = os.path.join(path, class_label)
+        
+        # If its a directory, then it is considered to be the class label
+        # and all the files in the directory are read and associated with 
+        # this class label
+        if os.path.isdir(class_dir_path):            
+            for file_name in os.listdir(class_dir_path):
+                file_path = os.path.join(class_dir_path, file_name)
+                with open(file_path, "r", encoding="utf8", errors="surrogateescape") as f:
+                    texts.append(str(f.read()))
+                    classes.append(class_label)  
+                    
+    return texts, classes
 
-    print(f"{len(embeddings)} words from the data set found in the embeddings")
+def read_glove_embeddings(path, vocab, vector_size):
+    '''
+    Reads GloVe pre-trained word embeddings into a Pandas Series
 
+    Parameters
+    ----------
+    path : str
+        Path to GloVe pre-trained embedding file.
+    vocab : list or None
+        List of terms to get word vectors for.
+    vector_size : int
+        Size of a word vector in the word embedding.
 
-labels, cluster_centers, args_ahc_dt_clusters = WcDe.cluster(embeddings = embeddings, wcde_clustering_method = , n_clusters = , linkage = , distance_threshold = )
+    Returns
+    -------
+    embeddings : pandas.Series
+        Pandas Series with words as the index and vector (numpy array) as the corresponding value.
 
-len(cluster_centers)
+    '''
+    embeddings = {}
+    
+    with open(os.path.expanduser(path)) as file:
+        for line in file:
+            word    = " ".join(line.split()[:-vector_size]) 
+            vector  = line.split()[-vector_size:]
+            
+            if vocab is not None and word in vocab:
+                embeddings[word] = vector    
 
-# Cluster Distribution
-pd.Series(labels).value_counts().sort_values(ascending=False).reset_index(drop=True).plot(figsize=(15,5))
+    embeddings = pd.DataFrame.from_dict(embeddings, orient="index").astype(float)
 
-wec_df = embeddings.to_frame()
+    embeddings = embeddings.apply(np.asarray, axis=1).rename("vector")
+    
+    embeddings = embeddings.reindex(vocab).dropna()
+    
+    embeddings.index.name = "word"
+    
+    return embeddings
+        
 
-# Name of index
-wec_df.index.name = "word"
-
-# Add Labels
-wec_df["label"] = labels
-
-# Get cluster center for each word
-cluster_centers_df = pd.DataFrame(cluster_centers).apply(np.asarray, axis=1).to_frame(name="cluster_center")
-
-wec_df = wec_df.join(cluster_centers_df, on="label")  
-
-list_of_text_embeddings = WcDe.generate_embeddings(data = full_dataset, wec_df = wec_df, cluster_function = , wcde_vector_normalize = True/False)
+if __name__ == "__main__":
+    
+    # Read Dataset
+    texts, classes = read_bbc_dataset(path="/path/to/bbc/") 
+    
+    # Tokenized the texts
+    tokenized_texts = [helpers.tokenize(text) for text in texts]
+    
+    # Get the vocabulary of dataset
+    vocab = helpers.flatten(tokenized_texts, unique=True)
+    
+    # Get word vectors (pandas.Series)
+    word_vectors = read_glove_embeddings(path="/path/to/glove.6B.100d.txt", vocab=vocab, vector_size=100)
+    
+    # Cluster Word Vectors
+    cluster_labels = WcDe.cluster_word_vectors(
+                                                    word_vectors=word_vectors,
+                                                    clustering_algorithm="ahc",
+                                                    n_clusters=None,
+                                                    distance_threshold=8,
+                                                    linkage="ward"
+                                              )
+    # Generate Document Vectors
+    wcde_doc_vectors = WcDe.get_document_vectors(    
+                                                    tokenized_texts,
+                                                    word_vectors=word_vectors,
+                                                    cluster_labels=cluster_labels,
+                                                    weight_function="cfidf",
+                                                    normalize=True
+                                                )
+    # Task - Cluster Documents
+    document_clustering_model = sklearn.cluster.KMeans(n_clusters=5, random_state=0)
+    document_clustering_model = document_clustering_model.fit(wcde_doc_vectors)
+    document_cluster_label = list(document_clustering_model.labels_)
+    
+    # Evaluation
+    score = sklearn.metrics.normalized_mutual_info_score(classes, document_cluster_label)    
+    print("Performance (NMI):", score)
