@@ -133,6 +133,5 @@ if __name__ == "__main__":
     document_cluster_label = list(document_clustering_model.labels_)
     
     # Evaluation
-    score = sklearn.metrics.normalized_mutual_info_score(classes, document_cluster_label)
-    
-    print("Normalized Mutual Information Score:", score)
+    score = sklearn.metrics.normalized_mutual_info_score(classes, document_cluster_label)    
+    print("Performance (NMI):", score)
