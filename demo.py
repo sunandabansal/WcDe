@@ -9,12 +9,15 @@ Year    :   2021
 
 # Importing Libraries
 import os
-import nltk
 import numpy as np
 import pandas as pd
 
 import helpers
 import WcDe
+
+# For clustering documents - Task specific imports
+import sklearn
+
 
 def read_bbc_dataset(path):
     '''
@@ -85,7 +88,7 @@ def read_glove_embeddings(path, vocab, vector_size):
 
     embeddings = pd.DataFrame.from_dict(embeddings, orient="index").astype(float)
 
-    embeddings = embeddings.apply(np.asarray, axis=1).rename("embedding")
+    embeddings = embeddings.apply(np.asarray, axis=1).rename("vector")
     
     embeddings = embeddings.reindex(vocab).dropna()
     
@@ -105,16 +108,18 @@ if __name__ == "__main__":
     # Get the vocabulary of dataset
     vocab = helpers.flatten(tokenized_texts, unique=True)
     
-    # Get word vectors 
+    # Get word vectors (pandas.Series)
     word_vectors = read_glove_embeddings(path="/path/to/glove.6B.100d.txt", vocab=vocab, vector_size=100)
     
-
+    # Cluster Word Vectors
     cluster_labels = WcDe.cluster_word_vectors(
-                                                  word_vectors=word_vectors, 
-                                                  clustering_algorithm="kmeans",
-                                                  n_clusters=1500 
+                                                    word_vectors=word_vectors,
+                                                    clustering_algorithm="ahc",
+                                                    n_clusters=None,
+                                                    distance_threshold=8,
+                                                    linkage="ward"
                                               )
-    
+    # Generate Document Vectors
     wcde_doc_vectors = WcDe.get_document_vectors(    
                                                     tokenized_texts,
                                                     word_vectors=word_vectors,
@@ -122,3 +127,12 @@ if __name__ == "__main__":
                                                     weight_function="cfidf",
                                                     normalize=True
                                                 )
+    # Task - Cluster Documents
+    document_clustering_model = sklearn.cluster.KMeans(n_clusters=5, random_state=0)
+    document_clustering_model = document_clustering_model.fit(wcde_doc_vectors)
+    document_cluster_label = list(document_clustering_model.labels_)
+    
+    # Evaluation
+    score = sklearn.metrics.normalized_mutual_info_score(classes, document_cluster_label)
+    
+    print("Normalized Mutual Information Score:", score)
