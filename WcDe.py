@@ -41,6 +41,7 @@ def cluster_word_vectors(
     n_clusters=1500, 
     distance_threshold=None,
     linkage="ward",
+    random_state=0,
     **clustering_kwargs
     ):
     '''
@@ -81,7 +82,11 @@ def cluster_word_vectors(
         word_vectors = list(word_vectors.tolist())
        
     if clustering_algorithm == "kmeans":
-        clustering_model = KMeans(n_clusters=n_clusters, **clustering_kwargs)
+        clustering_model = KMeans(
+                                    n_clusters=n_clusters, 
+                                    random_state=random_state,
+                                    **clustering_kwargs
+                                 )
 
     elif clustering_algorithm == "ahc" :        
         clustering_model = AHC(
