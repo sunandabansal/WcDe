@@ -9,45 +9,12 @@ Year    :   2021
 # Prep
 
 # Imports
-
-import os
-import csv
-import sys
-import json
-import time
-import scipy
-import socket
-import pickle
-import sklearn
+import warnings
 import numpy as np
 import pandas as pd
-from pathlib import Path
-import matplotlib
-import matplotlib.pyplot as plt
-import multiprocessing as mp
-from importlib import reload
 
-from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import Normalizer
-from sklearn import metrics
-from sklearn.metrics import confusion_matrix
-# from sklearn.metrics.pairwise import paired_distances as sklearn_paired_distances
-
-from gensim.models import Word2Vec as  Gensim_Word2Vec
-
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.feature_extraction.text import CountVectorizer
-
-# Plotting
-import seaborn as sns
-import matplotlib.pylab as plt
-
-from importlib import reload
-
-### Variables
-
-"""### Functions"""
-
+from sklearn.cluster import KMeans
+from sklearn.cluster import AgglomerativeClustering as AHC   
 
 def cluster_members(cluster_num):
     global inverted_index
@@ -69,10 +36,6 @@ def print_clusters(cluster_nums, print_limit=20):
         print(", ".join(cluster_members(cn)[:print_limit]))
         print()
 
-import warnings
-from sklearn.cluster import KMeans
-from sklearn.cluster import AgglomerativeClustering as AHC    
-
 def cluster_word_vectors(
     word_vectors, 
     clustering_algorithm, 
@@ -86,9 +49,9 @@ def cluster_word_vectors(
 
     Parameters
     ----------
-    word_vectors : 2D numpy.array or pandas.Series
-        A 2D array of shape (n_words, word_vector_size) or a Pandas Series with 
-        words as the index and vector (numpy array) as the corresponding value.        
+    word_vectors : pandas.Series
+        Pandas Series with words as the index and vector (numpy array) as the 
+        corresponding value.        
     clustering_algorithm : str
         Specifies which clustering algorithm to use. Accepts "kmeans" for K-Means
         or "ahc" for Agglomerative Hierarchical Clustering (AHC). 
@@ -142,14 +105,8 @@ def cluster_word_vectors(
 
     return labels
 
-def get_document_vectors(tokenized_texts, **kwargs):
-    return [
-                get_document_vector(tokenized_text, **kwargs) 
-                for tokenized_texts in tokenized_texts
-           ]
-
-def get_document_vector(
-    data, 
+def get_document_vectors(
+    tokenized_texts, 
     word_vectors, 
     cluster_labels, 
     weight_function="cfidf", 
@@ -162,29 +119,25 @@ def get_document_vector(
     wec_df.index.name = "word"
 
     # Add Labels
-    wec_df["label"] = labels
-
-    # Get cluster center for each word
-    cluster_centers_df = pd.DataFrame(cluster_centers).apply(np.asarray, axis=1).to_frame(name="cluster_center")
-
-    wec_df = wec_df.join(cluster_centers_df, on="label")  
+    wec_df["label"] = cluster_labels
     
-    N = len(data)
-    if cluster_function == "cfidf" or cluster_function == "tfidf_sum":
+    print(wec_df)
+    
+    N = len(tokenized_texts)
+    if weight_function == "cfidf" or weight_function == "tfidf_sum":
         # Calculate cluster document frequency
         '''
         cdf(i,j) = cluster document frquency of cluster i in document j
                  = number of times any term from cluster i appeared in document j
         Required for Qimin's cluster weight computation
         '''
-    
         # Inverted Index - word, document, term frequency, cluster label
         inverted_index = pd.DataFrame()
-        for idx, text_unit in data["tokenized_text"].iteritems():
-            if text_unit:
+        for idx, tokenized_text in enumerate(tokenized_texts):
+            if tokenized_text:
     
                 # Get terms and frequencies from tokenized text
-                tf = pd.Series(text_unit, name="term_freq").value_counts()
+                tf = pd.Series(tokenized_text, name="term_freq").value_counts()
     
                 # Filter Word Cluster index (wec_df) to contain only words from the Text, reset to not lose words (index)
                 wec_text_df = wec_df[["label"]].join(tf).dropna(subset=["term_freq"]).reset_index()
@@ -195,31 +148,32 @@ def get_document_vector(
     
         inverted_index = inverted_index.rename(columns={"index":"word"})
 
-        if cluster_function == "cfidf":
+        if weight_function == "cfidf":
             # Get number of documents for each cluster - count unique doc_ids
             cdf = inverted_index.groupby(["label"])["doc_id"].nunique().rename("df")
     
             # Get cluster idf values
             icdf_vector = np.log(N/cdf + 0.01)
             
-        elif cluster_function == "fraj" or cluster_function == "tfidf_sum":
+        elif weight_function == "tfidf_sum":
             # Get term document frequency
             doc_freq = inverted_index.groupby(["word"])["doc_id"].nunique().rename("df")
             
             # Inverse document frequency
             wec_df["idf"] = np.log(N/doc_freq)
     
-    list_of_text_embeddings = []
-    for i, text_unit in enumerate(data["tokenized_text"]):
-        if text_unit:
+    wcde_doc_vectors = []
+    
+    for tokenized_text in tokenized_texts:
+        if tokenized_text:
     
             # Get terms and frequencies from tokenized text
-            tf = pd.Series(text_unit, name="term_freq").value_counts()
+            tf = pd.Series(tokenized_text, name="term_freq").value_counts()
             
             # Filter Word Cluster index (wec_df) to contain only words from the Text, reset to not lose words (index)
             wec_text_df = wec_df.join(tf).dropna(subset=["term_freq"]).reset_index()
             
-            if cluster_function == "cfidf":            
+            if weight_function == "cfidf":            
                 '''
                 # Get cluster frequency - 
                 cf(i,j) = count of every occurrence of any terms of cluster i that are present in document j
@@ -227,40 +181,15 @@ def get_document_vector(
                 cf_vector = wec_text_df.groupby(["label"])["term_freq"].apply(np.sum)
                 
                 cluster_weights = cf_vector * icdf_vector[cf_vector.index]
-                
-                if bool(wcde_vector_normalize): 
-                    cluster_weights = cluster_weights/np.sqrt(np.sum(np.square(cluster_weights)))
                     
-            elif cluster_function == "tfidf_sum":            
+            elif weight_function == "tfidf_sum":            
                 
                 wec_text_df["tfidf"] = wec_text_df.term_freq * wec_text_df.idf
                 
                 cluster_weights = wec_text_df.groupby(["label"])["tfidf"].apply(np.sum)
                 
-                if bool(wcde_vector_normalize): 
-                    cluster_weights = cluster_weights/np.sqrt(np.sum(np.square(cluster_weights)))
-                    
-            elif cluster_function == "CDBWA":
-                # For each cluster, indexed by label - list of words, list of embeddings and list of cluster_centers 
-                clusters = wec_text_df.groupby(["label"]).agg(list)
-    
-                # Get Weight Sum
-                # cluster_label : list of distances for each participating word
-                cluster_weights = clusters[["embedding","cluster_center"]].apply(distance_weighted_sum, axis=1).apply(np.sum)                
-                
-                # Average
-                cluster_weights = cluster_weights/len(wec_text_df)
-                
-            elif cluster_function == "CDWA":
-                # For each cluster, indexed by label - list of words, list of embeddings and list of cluster_centers 
-                clusters = wec_text_df.groupby(["label"]).agg(list)
-    
-                # Get Weight Sum
-                # cluster_label : list of distances for each participating word
-                cluster_weights = clusters[["embedding","cluster_center","term_freq"]].apply(distance_weighted_sum, axis=1).apply(np.sum)                 
-                
-                # Average
-                cluster_weights = cluster_weights/len(wec_text_df)
+            if bool(normalize): 
+                cluster_weights = cluster_weights/np.sqrt(np.sum(np.square(cluster_weights)))
                 
             # In case there are clusters not seen in the sentence
             cluster_labels = wec_df.label.sort_values().unique()
@@ -268,10 +197,10 @@ def get_document_vector(
             # Re-indexing to include clusters unseen clusters
             cluster_weights = cluster_weights.reindex(cluster_labels, fill_value=0) 
             
-            list_of_text_embeddings.append(np.asarray(cluster_weights))
+            wcde_doc_vectors.append(np.asarray(cluster_weights))
         else:
             # The text is empty
             zero_vector = np.zeros(len(wec_df.label.sort_values().unique()))
-            list_of_text_embeddings.append(zero_vector)
+            wcde_doc_vectors.append(zero_vector)
             
-    return list_of_text_embeddings
+    return wcde_doc_vectors
