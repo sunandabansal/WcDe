@@ -50,7 +50,7 @@ def tokenize(
     tokens = tokenizer(text,**tokenizer_kwargs)
 
     if exclude is not None and len(exclude > 0):
-        tokens = [token for token in tokens if not token in exclude]
+        tokens = [token for token in tokens if token not in exclude]
 
     return tokens
 

@@ -8,7 +8,9 @@ Year    :   2021
 '''
 
 # Importing Libraries
-import os
+import os      
+import pdb 
+import argparse
 import numpy as np
 import pandas as pd
 
@@ -83,7 +85,7 @@ def read_glove_embeddings(path, vocab, vector_size):
             word    = " ".join(line.split()[:-vector_size]) 
             vector  = line.split()[-vector_size:]
             
-            if vocab is not None and word in vocab:
+            if vocab is None or word in vocab:
                 embeddings[word] = vector    
 
     embeddings = pd.DataFrame.from_dict(embeddings, orient="index").astype(float)
@@ -96,30 +98,86 @@ def read_glove_embeddings(path, vocab, vector_size):
     
     return embeddings
         
+def parse_command_line_arguments(desc=""):
+
+    parser = argparse.ArgumentParser(
+        description=desc,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    parser.add_argument(
+                            '--dataset_path', 
+                            type=str, 
+                            help='Path to BBC datasets - path/to/bbc[sport]/'
+                       )
+
+    parser.add_argument(
+                            '--embedding_file', 
+                            type=str,
+                            help='Path to GloVe 100d file - /path/to/glove.6B.100d.txt'
+                       )
+
+    parser.add_argument(
+                            '--clustering_algorithm', 
+                            type=str,
+                            default="ahc",
+                            help='''Only "kmeans" and "ahc" supported.'''
+                       )
+
+    parser.add_argument(
+                            '--distance_threshold', 
+                            type=float,
+                            default=8.0,
+                            help='''AHC Distance Threshold'''
+                       )
+
+    parser.add_argument(
+                            '--linkage', 
+                            type=str,
+                            default="ward",
+                            help='''"average", "complete" or "ward"'''
+                       )
+
+    parser.add_argument(
+                            '--n_clusters', 
+                            type=int,
+                            default=None,
+                            help='''AHC or K-Means number of clusters'''
+                       )
+
+    return parser.parse_args()
 
 if __name__ == "__main__":
+
+    # Read demo variables
+    args = parse_command_line_arguments()
     
     # Read Dataset
-    texts, classes = read_bbc_dataset(path="/path/to/bbc/") 
+    print("Reading dataset.")
+    texts, classes = read_bbc_dataset(path=args.dataset_path)       
     
     # Tokenized the texts
+    print("Tokenizing documents.")
     tokenized_texts = [helpers.tokenize(text) for text in texts]
     
     # Get the vocabulary of dataset
     vocab = helpers.flatten(tokenized_texts, unique=True)
     
     # Get word vectors (pandas.Series)
-    word_vectors = read_glove_embeddings(path="/path/to/glove.6B.100d.txt", vocab=vocab, vector_size=100)
+    print("Getting word vectors.")
+    word_vectors = read_glove_embeddings(path=args.embedding_file, vocab=vocab, vector_size=100)
     
     # Cluster Word Vectors
+    print("Clustering word vectors.")
     cluster_labels = WcDe.cluster_word_vectors(
                                                     word_vectors=word_vectors,
-                                                    clustering_algorithm="ahc",
-                                                    n_clusters=None,
-                                                    distance_threshold=8,
-                                                    linkage="ward"
+                                                    clustering_algorithm=args.clustering_algorithm,
+                                                    n_clusters=args.n_clusters,
+                                                    distance_threshold=args.distance_threshold,
+                                                    linkage=args.linkage
                                               )
+
     # Generate Document Vectors
+    print("Generating document vectors.")
     wcde_doc_vectors = WcDe.get_document_vectors(    
                                                     tokenized_texts,
                                                     word_vectors=word_vectors,
@@ -128,6 +186,7 @@ if __name__ == "__main__":
                                                     normalize=True
                                                 )
     # Task - Cluster Documents
+    print("Clustering document vectors.")
     document_clustering_model = sklearn.cluster.KMeans(n_clusters=5, random_state=0)
     document_clustering_model = document_clustering_model.fit(wcde_doc_vectors)
     document_cluster_label = list(document_clustering_model.labels_)

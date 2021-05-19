@@ -78,13 +78,13 @@ def cluster_word_vectors(
 
     '''
     
-    if type(word_vectors) == pd.Series:
+    if type(word_vectors) == pd.core.series.Series:
         word_vectors = list(word_vectors.tolist())
-       
+
     if clustering_algorithm == "kmeans":
         clustering_model = KMeans(
-                                    n_clusters=n_clusters, 
-                                    random_state=random_state,
+                                    n_clusters          = n_clusters, 
+                                    random_state        = random_state,
                                     **clustering_kwargs
                                  )
 
@@ -95,7 +95,9 @@ def cluster_word_vectors(
                                     linkage             = linkage,
                                     compute_full_tree   = True if n_clusters is None else False,
                                     **clustering_kwargs
-                                )          
+                                )  
+    else:
+        raise Exception('''Argument clustering_algorithm accepts "kmeans" or "ahc" only.''')        
         
     clustering_model = clustering_model.fit(word_vectors)
 
@@ -122,52 +124,52 @@ def get_document_vectors(
     # Total number of texts (used in cfidf weight calculations)
     N = len(tokenized_texts)           
     
-    if weight_function == "cfidf" or weight_function == "tfidf_sum":
-        # Calculate cluster document frequency
-        '''
-            Required for CF-iDF cluster weight computation
-            
-            cf(i,j)  = count of every occurrence of any terms of cluster i that are present in document j
-            cdf(i,j) = cluster document frquency of cluster i in document j
-                     = number of times any term from cluster i appeared in document j
+    # Calculate cluster document frequency
+    '''
+        Required for CF-iDF cluster weight computation
         
-        '''
-        # Prepare an index of term occurrence in documents
-        # Inverted Index - word, document, term frequency, cluster label
-        inverted_index = pd.DataFrame()
-        for idx, tokenized_text in enumerate(tokenized_texts):
-            if tokenized_text:
-    
-                # Get terms and frequencies from tokenized text
-                tf = pd.Series(tokenized_text, name="term_freq").value_counts()
-    
-                # Filter Word Cluster index (wec_df) to contain only words from the Text, 
-                # reset to not lose words (index)
-                wec_text_df = wec_df[["label"]].join(tf).dropna(subset=["term_freq"]).reset_index()
-    
-                wec_text_df["doc_id"] = idx
-    
-                inverted_index = inverted_index.append(wec_text_df)
-    
-        inverted_index = inverted_index.rename(columns={"index":"word"})
+        cf(i,j)  = count of every occurrence of any terms of cluster i that are present in document j
+        cdf(i,j) = cluster document frquency of cluster i in document j
+                 = number of times any term from cluster i appeared in document j
 
-        if weight_function == "cfidf":
-            # Get number of documents for each cluster - count unique doc_ids
-            cdf = inverted_index.groupby(["label"])["doc_id"].nunique().rename("df")
-    
-            # Get cluster idf values
-            icdf_vector = np.log(N/cdf + 0.01)
-            
-        elif weight_function == "tfidf_sum":
-            # Get term document frequency
-            doc_freq = inverted_index.groupby(["word"])["doc_id"].nunique().rename("df")
-            
-            # Inverse document frequency
-            wec_df["idf"] = np.log(N/doc_freq)
+    '''
+    # Prepare an index of term occurrence in documents
+    # Inverted Index - word, document, term frequency, cluster label
+    inverted_index = pd.DataFrame()
+    for idx, tokenized_text in enumerate(tokenized_texts):
+        if tokenized_text:
+
+            # Get terms and frequencies from tokenized text
+            tf = pd.Series(tokenized_text, name="term_freq").value_counts()
+
+            # Filter Word Cluster index (wec_df) to contain only words from the Text, 
+            # reset to not lose words (index)
+            wec_text_df = wec_df[["label"]].join(tf).dropna(subset=["term_freq"]).reset_index()
+
+            wec_text_df["doc_id"] = idx
+
+            inverted_index = inverted_index.append(wec_text_df)
+
+    inverted_index = inverted_index.rename(columns={"index":"word"})
+
+    if weight_function == "cfidf":
+        # Get number of documents for each cluster - count unique doc_ids
+        cdf = inverted_index.groupby(["label"])["doc_id"].nunique().rename("df")
+
+        # Get cluster idf values
+        icdf_vector = np.log(N/cdf + 0.01)
+        
+    elif weight_function == "tfidf_sum":
+        # Get term document frequency
+        doc_freq = inverted_index.groupby(["word"])["doc_id"].nunique().rename("df")
+        
+        # Inverse document frequency
+        wec_df["idf"] = np.log(N/doc_freq)
     
     wcde_doc_vectors = []
     
     for tokenized_text in tokenized_texts:
+
         if tokenized_text:
     
             # Get terms and frequencies from tokenized text
@@ -194,11 +196,8 @@ def get_document_vectors(
             if bool(normalize): 
                 cluster_weights = cluster_weights/np.sqrt(np.sum(np.square(cluster_weights)))
                 
-            # In case there are clusters not seen in the sentence
-            cluster_labels = wec_df.label.sort_values().unique()
-    
             # Re-indexing to include clusters unseen clusters
-            cluster_weights = cluster_weights.reindex(cluster_labels, fill_value=0) 
+            cluster_weights = cluster_weights.reindex(set(cluster_labels), fill_value=0) 
             
             wcde_doc_vectors.append(np.asarray(cluster_weights))
         else:
