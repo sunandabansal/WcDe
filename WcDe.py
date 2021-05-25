@@ -110,14 +110,18 @@ def cluster_word_vectors(
 
 def get_document_vectors(
     tokenized_texts, 
-    word_vectors, 
+    words,
     cluster_labels, 
     weight_function="cfidf", 
     normalize=True
     ):
     
+    # Quick Fix (#9)
+    if type(tokenized_texts) != pd.core.series.Series:
+        tokenized_texts = pd.Series(tokenized_texts)
+
     # Prepare dataframe with word vector and cluster labels for each word (index)
-    wec_df = word_vectors.to_frame()    
+    wec_df = pd.DataFrame(index=words)    
     wec_df["label"] = cluster_labels    # Add Cluster labels to the dataframe    
     wec_df.index.name = "word"          # Name the index
 
@@ -131,7 +135,6 @@ def get_document_vectors(
         cf(i,j)  = count of every occurrence of any terms of cluster i that are present in document j
         cdf(i,j) = cluster document frquency of cluster i in document j
                  = number of times any term from cluster i appeared in document j
-
     '''
     # Prepare an index of term occurrence in documents
     # Inverted Index - word, document, term frequency, cluster label
@@ -205,4 +208,98 @@ def get_document_vectors(
             zero_vector = np.zeros(len(wec_df.label.sort_values().unique()))
             wcde_doc_vectors.append(zero_vector)
             
+    return wcde_doc_vectors
+
+def get_document_vectors_v2(    
+    tokenized_texts, 
+    words,
+    cluster_labels, 
+    training_tokenized_texts=None,
+    weight_function="cfidf", 
+    normalize=True
+    ):    
+     
+    if training_tokenized_texts == None:
+        training_tokenized_texts = tokenized_texts
+
+    if type(tokenized_texts) == pd.core.series.Series:
+        tokenized_texts = list(tokenized_texts.tolist())
+        
+    if type(training_tokenized_texts) == pd.core.series.Series:
+        training_tokenized_texts = list(training_tokenized_texts.tolist())
+        
+    # Calculate cluster document frequency
+    '''
+        Required for CF-iDF cluster weight computation
+        
+        cf(i,j)  = count of every occurrence of any terms of cluster i that are present in document j
+        cdf(i)   = cluster document frequency of cluster i
+                 = number of document where any term from cluster i appeared in
+    '''
+    # Total number of texts (used in tfidf and cfidf weight calculations)
+    N = len(training_tokenized_texts) 
+    vector_size = len(set(cluster_labels))
+    
+    # Prepare document frequencies based on the [training] data
+    df = {word:[] for word in words}
+    cdf = {cl:[] for cl in range(vector_size)}
+    word_clusters = {word: cluster_label for word, cluster_label in zip(words, cluster_labels)}
+
+    for idx, tokenized_text in enumerate(training_tokenized_texts):
+        for token in set(tokenized_text):
+            if token in words:
+                if idx not in df[token]:
+                    df[token].append(idx)
+                if idx not in cdf[word_clusters[token]]:
+                    cdf[word_clusters[token]].append(idx)
+    
+    df = {token:len(df[token]) for token in df}
+    cdf = {cluster_label:len(cdf[cluster_label]) for cluster_label in cdf}
+
+    if weight_function == "cfidf":
+        #  CF-IDF Prep
+        cdf_vector = np.array([cdf[cl] for cl in range(vector_size)]) 
+        icdf_vector = np.log(N/cdf_vector + 0.01)
+        
+    elif weight_function == "tfidf_sum":
+        # TF-iDF SUM Prep
+        idf = {token:np.log(N/df[token]) for token in df}
+    
+    wcde_doc_vectors = []
+    
+    cf_all = []
+    for idx, tokenized_text in enumerate(tokenized_texts):
+        
+        # Default
+        cluster_weights = [0]*vector_size 
+        
+        if len(tokenized_text) > 0:
+            # Get terms and frequencies from tokenized text
+            
+            if weight_function == "cfidf":            
+                '''
+                # Get cluster frequency - 
+                cf(i,j) = count of every occurrence of any terms of cluster i that are present in document j
+                '''
+                cf_vector = [0]*vector_size 
+                for token in tokenized_text:
+                    if token in words:
+                        cf_vector[word_clusters[token]] += 1                
+                cf_vector = np.array(cf_vector)
+                cf_all.append(cf_vector)
+                
+                cluster_weights = cf_vector * icdf_vector
+                    
+            elif weight_function == "tfidf_sum":  
+                for token in set(tokenized_text):
+                    if token in words:
+                        cluster_weights[word_clusters[token]] += tokenized_text.count(token)*idf[token] 
+                        
+                cluster_weights = np.array(cluster_weights)
+                
+            if bool(normalize): 
+                cluster_weights = cluster_weights/np.sqrt(np.sum(np.square(cluster_weights)))
+            
+        wcde_doc_vectors.append(np.asarray(cluster_weights))
+    
     return wcde_doc_vectors
