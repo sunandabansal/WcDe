@@ -15,26 +15,6 @@ import pandas as pd
 from sklearn.cluster import KMeans
 from sklearn.cluster import AgglomerativeClustering as AHC   
 
-def cluster_members(cluster_num):
-    global inverted_index
-    list_of_occurrences = inverted_index[inverted_index.label == cluster_num]\
-                        .sort_values("total_tf",ascending=False)["word"]
-    words = []
-    for word in list_of_occurrences:
-        if word not in words:
-            words.append(word)
-    return words
-
-def print_clusters(cluster_nums, print_limit=20):
-    if type(cluster_nums) == int:
-        cluster_nums = [cluster_nums]
-    tabled_results = []
-    for cn in cluster_nums:
-        print(cn)
-        print("-"*len(str(cn)))
-        print(", ".join(cluster_members(cn)[:print_limit]))
-        print()
-
 def cluster_word_vectors(
     word_vectors, 
     clustering_algorithm, 
