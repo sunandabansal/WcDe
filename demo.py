@@ -88,7 +88,9 @@ def read_glove_embeddings(path, vocab, vector_size):
                 words_found.append(word)
                 embeddings.append(vector) 
                 
+    # Sort Words and Word Evctors
     words_found, embeddings = zip(*sorted(zip(words_found, embeddings)))
+    
     return list(words_found), np.array(embeddings)
         
 if __name__ == "__main__":
@@ -96,7 +98,7 @@ if __name__ == "__main__":
     # Read demo variables
     dataset_path    = "/path/to/bbc"
     embedding_file  = "/path/to/glove.6B.100d.txt"
-    
+
     clustering_algorithm    = "ahc"
     linkage                 = "ward"
     n_clusters              = None
