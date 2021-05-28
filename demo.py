@@ -9,6 +9,7 @@ Year    :   2021
 
 # Importing Libraries
 import os      
+import numpy as np
 
 # Importing Demo Modules
 import helpers
@@ -41,14 +42,14 @@ def read_bbc_dataset(path):
     
     texts, classes = [], []
     
-    for class_label in os.listdir(path):
+    for class_label in sorted(os.listdir(path)):
         class_dir_path = os.path.join(path, class_label)
         
         # If its a directory, then it is considered to be the class label
         # and all the files in the directory are read and associated with 
         # this class label
         if os.path.isdir(class_dir_path):            
-            for file_name in os.listdir(class_dir_path):
+            for file_name in sorted(os.listdir(class_dir_path)):
                 file_path = os.path.join(class_dir_path, file_name)
                 with open(file_path, "r", encoding="utf8", errors="surrogateescape") as f:
                     texts.append(str(f.read()))
@@ -81,15 +82,15 @@ def read_glove_embeddings(path, vocab, vector_size):
     with open(os.path.expanduser(path)) as file:
         for line in file:
             word    = line.split()[0] 
-            vector  = line.split()[1:]
+            vector  = [float(val) for val in line.split()[1:]]
             
             if vocab is None or word in vocab:
                 words_found.append(word)
                 embeddings.append(vector) 
-    
-    return words_found, embeddings
+                
+    words_found, embeddings = zip(*sorted(zip(words_found, embeddings)))
+    return list(words_found), np.array(embeddings)
         
-
 if __name__ == "__main__":
 
     # Read demo variables
@@ -140,7 +141,7 @@ if __name__ == "__main__":
     print("Clustering document vectors.")
     document_clustering_model = sklearn.cluster.KMeans(
                                                             n_clusters=5, 
-                                                            random_state=3
+                                                            random_state=0
                                                        )
     document_clustering_model = document_clustering_model.fit(wcde_doc_vectors)
     document_cluster_label = list(document_clustering_model.labels_)
