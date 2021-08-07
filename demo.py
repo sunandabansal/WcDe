@@ -35,6 +35,7 @@ def read_bbc_dataset(path):
     -------
     texts : list
         List of textual content of all documents in the dataset.
+        
     classes : list
         List of class labels corresponding to each textual document.
 
@@ -66,8 +67,10 @@ def read_glove_embeddings(path, vocab, vector_size):
     ----------
     path : str
         Path to GloVe pre-trained embedding file.
+
     vocab : list or None
         List of terms to get word vectors for.
+
     vector_size : int
         Size of a word vector in the word embedding.
 
@@ -75,6 +78,7 @@ def read_glove_embeddings(path, vocab, vector_size):
     -------
     words : list
         Words from the vocab that were found in the word emebedding
+
     embeddings : np.array
         A 2-D of word vectors corresponding to the words
 
