@@ -31,20 +31,25 @@ def cluster_word_vectors(
     ----------
     word_vectors : pandas.Series
         Pandas Series with words as the index and vector (numpy array) as the 
-        corresponding value.        
+        corresponding value.  
+
     clustering_algorithm : str
         Specifies which clustering algorithm to use. Accepts "kmeans" for K-Means
         or "ahc" for Agglomerative Hierarchical Clustering (AHC). 
+
     n_clusters : int, optional
         The number of clusters to cluster the word vectors into. The default is 1500.
+
     distance_threshold : float, optional
         For Agglomerative Hierarchical Clustering (AHC), the clusters with linkage 
         distance smaller than this value will be merged. If a value is declared 
         for this parameter then `n_clusters` must be set to None.        
         The default is None.
+
     linkage : str, optional
         The linkage critera for Agglomerative Hierarchical Clustering (AHC).
         The default is None.
+
     **clustering_kwargs : TYPE
         Additional keyword arguments are passed to respective clustering functions
         based on the value `clustering_algorithm`. For refer to the documentation
@@ -57,9 +62,6 @@ def cluster_word_vectors(
         A list of cluster labels for each of the word vectors.
 
     '''
-    
-    if type(word_vectors) == pd.core.series.Series:
-        word_vectors = list(word_vectors.tolist())
 
     if clustering_algorithm == "kmeans":
         clustering_model = KMeans(
@@ -99,23 +101,36 @@ def get_document_vectors(
     ):    
 
     '''
-    Computes the document vectors given word clusters and weight function
+    Computes the document vectors given word clusters and weight function.
+
+    CF-IDF
+    ======
+    Required for CF-iDF cluster weight computation
+        
+        cf(i,j)  = count of every occurrence of any terms of cluster i that are present in document j
+        cdf(i)   = cluster document frequency of cluster i
+                 = number of document where any term from cluster i appeared in
 
     Parameters
     ----------
     tokenized_texts : list of lists of str
-        A list of texts where each text is further a list of tokens.        
+        A list of texts where each text is further a list of tokens.      
+
     words : list
         The words that were clustered. 
+
     cluster_labels : list
         For each word, this list gives the label of the cluster it belongs to.
+
     weight_function : str, optional
         Provides the default weighting scheme to be used. The available 
-        options are "cfidf" and "tfidf_sum".
+        options are "cfidf" or "tfidf_sum".
         The default is "cfidf".
+
     training_tokenized_texts : list of list of str, optional
         The training texts are used to calculate the document frequencies.       
         The default is None.
+
     normalize : bool, optional
         If True, then the document vectors will be length normalized (L2).
         The default is True.
@@ -126,47 +141,40 @@ def get_document_vectors(
         A list of document vector for each documents in the tokenized_texts
 
     '''
-
      
+    # If training texts are not provided
     if training_tokenized_texts == None:
         training_tokenized_texts = tokenized_texts
 
-    if type(tokenized_texts) == pd.core.series.Series:
-        tokenized_texts = list(tokenized_texts.tolist())
-        
-    if type(training_tokenized_texts) == pd.core.series.Series:
-        training_tokenized_texts = list(training_tokenized_texts.tolist())
-        
-    # Calculate cluster document frequency
-    '''
-        Required for CF-iDF cluster weight computation
-        
-        cf(i,j)  = count of every occurrence of any terms of cluster i that are present in document j
-        cdf(i)   = cluster document frequency of cluster i
-                 = number of document where any term from cluster i appeared in
-    '''
     # Total number of texts (used in tfidf and cfidf weight calculations)
     N = len(training_tokenized_texts) 
     vector_size = len(set(cluster_labels))
     
-    # Prepare document frequencies based on the [training] data
+    # Dictionaries that record the document IDs each term or word cluster appears in
     df = {word:[] for word in words}
     cdf = {cl:[] for cl in range(vector_size)}
     word_clusters = {word: cluster_label for word, cluster_label in zip(words, cluster_labels)}
 
+    # Calculates term-document-frequency and cluster-document-frequency from the [training] data
     for idx, tokenized_text in enumerate(training_tokenized_texts):
         for token in set(tokenized_text):
+
+            # If token is in a part of word clusters
             if token in words:
+
+                # Append document ID if it isn't already in the list of documents
                 if idx not in df[token]:
                     df[token].append(idx)
                 if idx not in cdf[word_clusters[token]]:
                     cdf[word_clusters[token]].append(idx)
     
+    # Maps the token and word clusters to their corresponding document frequencies
     df = {token:len(df[token]) for token in df}
     cdf = {cluster_label:len(cdf[cluster_label]) for cluster_label in cdf}
 
+    # Calculate inverse document frequencies in preparation for weighting schemes 
     if weight_function == "cfidf":
-        #  CF-IDF Prep
+        # CF-IDF Prep
         cdf_vector = np.array([cdf[cl] for cl in range(vector_size)]) 
         icdf_vector = np.log(N/cdf_vector + 0.01)
         
@@ -174,38 +182,45 @@ def get_document_vectors(
         # TF-iDF SUM Prep
         idf = {token:np.log(N/df[token]) for token in df}
     
-    wcde_doc_vectors = []
-    
-    cf_all = []
+    wcde_doc_vectors = [] # WcDe Document vector corresponding to each document
+    cf_all = [] # Cluster Frequency vectors corresponding to each document
+
+    # Process each document and generate its document vector
     for idx, tokenized_text in enumerate(tokenized_texts):
         
-        # Default
+        # Default vector - origin
         cluster_weights = [0]*vector_size 
         
         if len(tokenized_text) > 0:
-            # Get terms and frequencies from tokenized text
+
             
-            if weight_function == "cfidf":            
-                '''
+            if weight_function == "cfidf":           
+
                 # Get cluster frequency - 
-                cf(i,j) = count of every occurrence of any terms of cluster i that are present in document j
-                '''
-                cf_vector = [0]*vector_size 
+                #   cf(i,j) =   count of every occurrence of any terms of 
+                #               cluster i that are present in document j
+
+                cf_vector = [0]*vector_size  # default
                 for token in tokenized_text:
                     if token in words:
                         cf_vector[word_clusters[token]] += 1                
                 cf_vector = np.array(cf_vector)
                 cf_all.append(cf_vector)
                 
+                # Calculate CF-iDF weight of all the clusters in the document
                 cluster_weights = cf_vector * icdf_vector
                     
-            elif weight_function == "tfidf_sum":  
+            elif weight_function == "tfidf_sum": 
+                # Calculate the weight of clusters in the documents as sum of 
+                # tfidf values of its members
+
                 for token in set(tokenized_text):
                     if token in words:
                         cluster_weights[word_clusters[token]] += tokenized_text.count(token)*idf[token] 
                         
                 cluster_weights = np.array(cluster_weights)
                 
+            # Length Normalize
             if bool(normalize): 
                 cluster_weights = cluster_weights/np.sqrt(np.sum(np.square(cluster_weights)))
             
