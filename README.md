@@ -38,7 +38,7 @@ To run the demo follow these simple steps.
 ### Prerequisites
 
 * Python >= 3.6
-* `virtualenv` (highly recommended)  
+* `virtualenv`  
 
 *For information on how to install `vistualenv`, please refer to - [Python - Installing packages using pip and virtual environments](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/)*
 
@@ -49,7 +49,7 @@ To run the demo follow these simple steps.
    git clone https://github.com/sunandabansal/WcDe
    cd WcDe
    ```
-2. __Set up Virtual Environment__ (highly recommended)  
+2. __Set up Virtual Environment__  
    Create virtual environment
     ```sh
     virtualenv env
@@ -116,6 +116,11 @@ Clustering word vectors.
 Generating document vectors.
 Clustering document vectors.
 Performance (NMI): 0.8004845766270388
+```
+
+### Deactivating environment
+```sh
+deactivate
 ```
 
 
