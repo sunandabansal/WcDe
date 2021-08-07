@@ -13,6 +13,7 @@ This repository provides implementation for generating Word Clusters based Docum
         |----------------------|------------------------------|-------------|--------------------------------------------------------------------------------------------------------------|
         | dataset_path         | "/path/to/bbc"               | str         | Path to `bbc` or `bbcsport` directories                                                                      |
         | embedding_file       | "/path/to/glove.6B.100d.txt" | str         | Word embedding to be used                                                                                    |
+        | word_vector_size     | 100                          | int         | Size of each word vectors                                                                                    |
         | clustering_algorithm | "ahc"                        | str         | The clustering technique. Acceptable values are - "ahc", "kmeans".                                           |
         | linkage              | "ward"                       | str         | Merge Criteria for Hierarchical Clustering. Acceptable values are - "ward", "complete", "average", "single". |
         | n_clusters           | None                         | int or None | Number of clusters for Flat clustering                                                                       |
@@ -66,16 +67,18 @@ To get a local copy up and running follow these simple steps.
 
 ### Usage Instructions
 
-1. In `demo.py`, set the the paths for `dataset_path` and `embedding_file`. 
+1. In `demo.py`, set the the following values in the main body. 
 
-    | Variable       | Comment                                 |
-    |----------------|-----------------------------------------|
-    | dataset_path   | Path to `bbc` or `bbcsport` directories |
-    | embedding_file | Path to GloVe 100-dimensional pre-trained word embedding  |
+    | Variable          | Comment                                                   |
+    |-------------------|-----------------------------------------------------------|
+    | dataset_path      | Path to `bbc` or `bbcsport` directories                   |
+    | embedding_file    | Path to GloVe 100-dimensional pre-trained word embedding  |
+    | word_vector_size  | Size of each word vectors                                 |
     
     ```py
     dataset_path      = "your/path/to/bbc"
     embedding_file    = "your/path/to/glove.6B.100d.txt"
+    word_vector_size  = 100
     ```
 2. Run
     ```sh
