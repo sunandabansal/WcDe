@@ -1,9 +1,9 @@
-# Word Clusters based Document Embedding (WcDe)
+# Word Clusters based Document Embedding (WcDe) - A demo
 
 
 [![CC BY 4.0][license-shield]][license-url]
 
-This repository provides implementation for generating Word Clusters based Document Embedding (WcDe). The purpose of this repository, at the moment, is to allow the user to experiment with the methodology. Therefore, at the moment, the demo is only configured to work for BBC datasets with 100-dimensional pre-trained GloVe embedding. The demo generates WcDe document representations, clusters them and evaluates the performance based on the Normalized Mutual Information score.
+This repository provides implementation for generating Word Clusters based Document Embedding (WcDe). The purpose of this repository, at the moment, is to allow the user to experiment with the methodology. Therefore, at the moment, the demo is only configured to work for BBC datasets with 100-dimensional pre-trained GloVe embedding. This demo generates WcDe document representations, clusters them and evaluates the performance based on the Normalized Mutual Information score.
 
 ## Files and Methods
 1. `demo.py` - This file is to be run for the demo. It contains the methods and parameters that are specific to this demo. 
@@ -31,10 +31,9 @@ This repository provides implementation for generating Word Clusters based Docum
 
 
 
-
 ## Getting Started
 
-To get a local copy up and running follow these simple steps.
+To run the demo follow these simple steps.
 
 ### Prerequisites
 
@@ -85,7 +84,7 @@ To get a local copy up and running follow these simple steps.
     python3 demo.py
     ```
     
-### Expected results
+### Expected Output
 
 Using Glove 100d word embedding and the default clustering configurations given below -
 
