@@ -59,7 +59,8 @@ def read_bbc_dataset(path):
 
 def read_glove_embeddings(path, vocab, vector_size):
     '''
-    Reads GloVe pre-trained word embeddings into a Pandas Series
+    Reads GloVe pre-trained word embedding and returns returns a list of words 
+    and an array containing word vectors corresponding to the words.
 
     Parameters
     ----------
@@ -72,8 +73,10 @@ def read_glove_embeddings(path, vocab, vector_size):
 
     Returns
     -------
-    embeddings : pandas.Series
-        Pandas Series with words as the index and vector (numpy array) as the corresponding value.
+    words : list
+        Words from the vocab that were found in the word emebedding
+    embeddings : np.array
+        A 2-D of word vectors corresponding to the words
 
     '''
     words_found = []
@@ -88,21 +91,27 @@ def read_glove_embeddings(path, vocab, vector_size):
                 words_found.append(word)
                 embeddings.append(vector) 
                 
-    # Sort Words and Word Evctors
+    # Sort Words and Word Vectors
     words_found, embeddings = zip(*sorted(zip(words_found, embeddings)))
     
-    return list(words_found), np.array(embeddings)
+    embeddings = np.array(embeddings)
+    words_found = list(words_found)
+
+    return words_found, embeddings
         
 if __name__ == "__main__":
 
-    # Read demo variables
-    dataset_path    = "/path/to/bbc"
-    embedding_file  = "/path/to/glove.6B.100d.txt"
+    # Set demo variables
+    dataset_path            = "/path/to/bbc"
+    embedding_file          = "/path/to/glove.6B.100d.txt"
 
     clustering_algorithm    = "ahc"
     linkage                 = "ward"
     n_clusters              = None
     distance_threshold      = 8
+
+    weighting_scheme        = "cfidf"
+    length_normalize        = True
     
     # Read Dataset
     print("Reading dataset.")
@@ -135,8 +144,8 @@ if __name__ == "__main__":
                                                     tokenized_texts,
                                                     words=words,
                                                     cluster_labels=cluster_labels,
-                                                    weight_function="cfidf",
-                                                    normalize=True
+                                                    weight_function=weighting_scheme,
+                                                    normalize=length_normalize
                                                 )
     
     # Task - Cluster Documents
