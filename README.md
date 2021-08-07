@@ -1,5 +1,4 @@
-# Word Clusters based Document Embedding (WcDe) - A demo
-
+# Word Clusters based Document Embedding (WcDe)
 
 [![CC BY 4.0][license-shield]][license-url]
 
@@ -32,13 +31,12 @@ This repository provides implementation for generating Word Clusters based Docum
 
 
 ## Getting Started
-
 To run the demo follow these simple steps.
 
 ### Prerequisites
 
 * Python >= 3.6
-* `virtualenv`  
+* `virtualenv` for creating the virtual environment
 
 *For information on how to install `vistualenv`, please refer to - [Python - Installing packages using pip and virtual environments](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/)*
 
@@ -49,16 +47,16 @@ To run the demo follow these simple steps.
    git clone https://github.com/sunandabansal/WcDe
    cd WcDe
    ```
-2. __Set up Virtual Environment__  
-   Create virtual environment
+2. __Set up the virtual environment__  
+   Create a virtual environment
     ```sh
     virtualenv env
     ```
-   Activate virtual environment
+   Activate the virtual environment
     ```sh
     source env/bin/activate
     ```
-3. Install packages
+3. Install the packages
     ```sh
     pip3 install -r requirements.txt
     ```
@@ -119,6 +117,7 @@ Performance (NMI): 0.8004845766270388
 ```
 
 ### Deactivating environment
+For deactivating the virtual environment, run -
 ```sh
 deactivate
 ```
