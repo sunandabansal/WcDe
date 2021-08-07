@@ -35,7 +35,6 @@ def read_bbc_dataset(path):
     -------
     texts : list
         List of textual content of all documents in the dataset.
-        
     classes : list
         List of class labels corresponding to each textual document.
 
@@ -89,7 +88,7 @@ def read_glove_embeddings(path, vocab, vector_size):
     with open(os.path.expanduser(path)) as file:
         for line in file:
             word    = line.split()[0] 
-            vector  = [float(val) for val in line.split()[1:]]
+            vector  = [float(val) for val in line.split()[-vector_size:]]
             
             if vocab is None or word in vocab:
                 words_found.append(word)
@@ -108,6 +107,7 @@ if __name__ == "__main__":
     # Set demo variables
     dataset_path            = "/path/to/bbc"
     embedding_file          = "/path/to/glove.6B.100d.txt"
+    word_vector_size        = 100
 
     clustering_algorithm    = "ahc"
     linkage                 = "ward"
@@ -130,8 +130,8 @@ if __name__ == "__main__":
     
     # Get word vectors (pandas.Series)
     print("Getting word vectors.")
-    words, word_vectors = read_glove_embeddings(path=embedding_file, vocab=vocab, vector_size=100)
-    
+    words, word_vectors = read_glove_embeddings(path=embedding_file, vocab=vocab, vector_size=word_vector_size)
+
     # Cluster Word Vectors
     print("Clustering word vectors.")
     cluster_labels = WcDe.cluster_word_vectors(
