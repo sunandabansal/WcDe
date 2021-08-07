@@ -24,18 +24,23 @@ def tokenize(
     ----------
     text : str
         Text document to tokenize.
+
     tokenizer : function, optional
         Function to be used for tokenization. The method should accept the text document 
         as the first positional argument. The rest of the arguments can be passed as keyword
         arguments to this function.
-        The default is nltk.tokenize.RegexpTokenizer(r'(?u)\b\w\w+\b').tokenize. Default tokenizer
-        extracts all the alphanumeric sequences containing more than 1 character.
+        The default tokenizer is nltk.tokenize.RegexpTokenizer that tokenizes based on the regex 
+        pattern '(?u)\b\w\w+\b'. This regex pattern tokenizer extracts all the alphanumeric 
+        sequences containing more than 1 character.
+
     lowercase : bool, optional
         If True, the text will be casefolded before tokenization. The default is True.
+
     exclude : list or None, optional
         The list of terms to exclude from tokens. This could be stopwords or more. 
         If None, or empty list is provided, no tokens will be excluded from the results.
         The default is None.
+
     tokenizer_kwargs : dict, optional
         Any additional keyword arguments passed to this function are passed to the tokenizer, if any.
 
@@ -63,6 +68,7 @@ def flatten(nested_iterable,unique=False):
     ----------
     nested_iterable : list or tuple or numpy.array
         The iterable object that is nested and needs to be flattened
+
     unique : bool, optional
         Removes multiple occurrences, retains the DFS traversal order. The default is False.
 
@@ -71,6 +77,7 @@ def flatten(nested_iterable,unique=False):
     unique_items : list
         Flattened list without multiple occurrences of the same item while retaining the order 
         of DFS traversal.
+
     flattened_list : list
         Flattened list of items traversed depth-first.
 
