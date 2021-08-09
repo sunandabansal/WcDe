@@ -5,7 +5,7 @@
 This repository provides implementation for generating Word Clusters based Document Embedding (WcDe). The purpose of this repository, at the moment, is to allow the user to experiment with the methodology. Therefore, at the moment, the demo is only configured to work for BBC datasets with 100-dimensional pre-trained GloVe embedding. This demo generates WcDe document representations, clusters them and evaluates the performance based on the Normalized Mutual Information score.
 
 ## Files and Methods
-1. `demo.py` - This file is to be run for the demo. It contains the methods and parameters that are specific to this demo. 
+1. `demo.py` - This file runs the demo. It contains the methods and parameters that are specific to this demo. 
     1. `__main__` - The main body of `demo.py` that sets the demo parameters, generates document vectors, clusters document vectors and evaluates the performance using Normalized Mutual Information between the clusters and the true class of documents. The parameters that can be set for the demo are - 
  
         | Variable             | Default Value                | Type        | Comment                                                                                                      |
@@ -21,7 +21,7 @@ This repository provides implementation for generating Word Clusters based Docum
         | length_normalize     | True                         | bool        | Whether to length normalize the WcDe document vector or not                                                  |
     2. `read_bbc_dataset()` - It reads any of the BBC datasets (BBC or BBCSport). The __raw__ text files can be downloaded from [http://mlg.ucd.ie/datasets/bbc.html](http://mlg.ucd.ie/datasets/bbc.html). The zipped file can be unzipped to get the folders the raw data in the form of two directories - `bbc` or `bbcsport` dataset. This method takes the path of one directory and parses its contents to get the texts and corresponding classes. To make the experiment deterministic, the documents are read in the alphabetical order of class name. For the documents of same class the documents are sorted in the alphabetical order of file names.
     3. `read_glove_embeddings()` - Reads GloVe pre-trained word embeddings and returns a list of words and an array containing word vectors corresponding to the words. To make the experiment deterministic, the words are sorted in alphabetical order.
-1. `WcDe.py` - This file contains the methods that implements the WcDe methodology.
+1. `WcDe.py` - This file contains the methods that implement the WcDe methodology.
     1. `cluster_word_vectors()` - Clusters the word vectors.
     2. `get_document_vectors()` - Generates the WcDe document vectors.
 1. `helpers.py` - This file contains additional helper methods.
